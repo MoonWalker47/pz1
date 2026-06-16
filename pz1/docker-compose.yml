@@ -1,0 +1,54 @@
+services:
+  web:
+    build: .
+    container_name: task-fastapi-app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_NAME=taskdb
+      - DB_USER=admin
+      - DB_PASSWORD=secret_pass
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - app_net
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: task-postgres-db
+    environment:
+      - POSTGRES_DB=taskdb
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret_pass
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d taskdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app_net
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4:8.4
+    container_name: task-pgadmin-ui
+    ports:
+      - "8080:80"
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=developer@local.dev
+      - PGADMIN_DEFAULT_PASSWORD=admin_pass
+    networks:
+      - app_net
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+
+networks:
+  app_net:
+    driver: bridge
